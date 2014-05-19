@@ -3,3 +3,10 @@
 /test
 /tool
 /cv
+/gt
+/libsvm
+/model_files
+/submission
+/test_features
+/train_features
+/train_features.npy

@@ -241,7 +241,7 @@ class GestureSample(object):
         depth=depth/255.0*float(self.data['maxDepth'])
         depth=depth.round()
         depth=depth.astype(np.uint16)
-        return depth
+        return depth, depthGray
     
     
     def getUser(self, frameNum):

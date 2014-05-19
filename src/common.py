@@ -17,5 +17,6 @@ class GestureType():
     single_hand = 4
     
     
-# Sliding window size for segmentation
-SEGMENT_WINDOW_SIZE = 1
+# Image and video resolution
+VIDEO_WIDTH = 640
+VIDEO_HEIGHT = 480

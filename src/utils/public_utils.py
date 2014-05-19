@@ -8,7 +8,7 @@ Created on 24/03/2014
 
 
 import numpy as np
-from sklearn import preprocessing
+from sklearn import preprocessing, decomposition
 import os
 from utils.ChalearnLAPSample import GestureSample
 
@@ -95,3 +95,39 @@ def removeall(path):
         elif os.path.isdir(fullpath):
             removeall(fullpath)
             os.rmdir(fullpath)
+
+
+def perfromPca(X, threshold):
+    ''' perform pca
+        X: array need to be performed on
+        threshold: percentage remain
+    '''
+    pca = decomposition.PCA()
+    pca.fit(X)
+    ratioList = pca.explained_variance_ratio_
+    
+    sum = 0.
+    nComp = 0
+      
+    # find component number
+    for i in xrange(len(ratioList)):
+        sum += ratioList[i]
+          
+        if sum >= threshold:
+            nComp = i + 1
+            break
+    pca.n_components = nComp
+    X_reduced = pca.fit_transform(X)
+    return X_reduced
+
+
+# Self added
+def getGestureIDListFromTrain(trainGestureList):
+    ''' get gesture id list from training gesture list '''
+    # Initialize gesture_id list
+    gestureIDList = []
+    
+    for gesture in trainGestureList:
+        gestureIDList.append(gesture.getGestureID())
+
+    return list(set(gestureIDList))

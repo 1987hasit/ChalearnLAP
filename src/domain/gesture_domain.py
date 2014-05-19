@@ -9,7 +9,8 @@ Created on 24/03/2014
 
 from common import GestureType
 import numpy as np
-from hmmlearn import hmm
+from sklearn import hmm
+# from hmmlearn import hmm
 
 class Gesture:
     """ Class for gesture features """
@@ -20,11 +21,23 @@ class Gesture:
         self.gestureID = gestureID
         self.startFrame = startFrame
         self.endFrame = endFrame
-        self.fileName = fileName
         
-        self.leftGestureFeatures = None
-        self.rightGestureFeatures = None
+        self.fileName = fileName
         self.gestureType = GestureType.unknown
+        
+        ## Features
+        # statistic skeleton features
+        self.staFeatures = None
+        
+        # MTM features
+        self.mtmFeatures = None
+        
+        # time domain features
+        self.timeDomainFeatures = None
+        
+        # hmm output features
+        self.hmmOutputFeatures = None
+        
         
     def getGestureID(self):
         """ Get start frame of the gesture """
@@ -38,12 +51,18 @@ class Gesture:
         """ Get end frame of the gesture """
         return self.endFrame
     
-    def setLeftGestureFeatures(self, leftGestureFeatures):
-        self.leftGestureFeatures = leftGestureFeatures
+    def setStaFeatures(self, staFeatures):
+        self.staFeatures = staFeatures
         
-    def setRightGestureFeatures(self, rightGestureFeatures):
-        self.rightGestureFeatures = rightGestureFeatures
+    def setTimeDomainFeatures(self, timeDomainFeatures):
+        self.timeDomainFeatures = timeDomainFeatures
     
+    def setMtmFeatures(self, mtmFeatures):
+        self.mtmFeatures = mtmFeatures
+        
+    def setHmmOutputFeatures(self, hmmOutputFeatures):
+        self.hmmOutputFeatures = hmmOutputFeatures    
+
 
 class GestureModel:
     ''' gesture model class '''
@@ -62,16 +81,15 @@ class GestureModel:
         self.transmatPrior = None
         self.bakisLevel = 2
        
-    def initModelParam(self, nStates, nMix, covarianceType, n_iter, bakisLevel):
+    def initModelParam(self, nStates, nMix, covarianceType, n_iter):
         ''' init params for hmm model '''
         
         self.nStates = nStates  # number of states
         self.nMix = nMix   # number of mixtures
         self.covarianceType = covarianceType    # covariance type
         self.n_iter = n_iter    # number of iterations
-        self.bakisLevel = bakisLevel
         
-        startprobPrior, transmatPrior = self.initByBakis(nStates, bakisLevel)
+        startprobPrior, transmatPrior = self.initByBakis(nStates, self.bakisLevel)
         self.startprobPrior = startprobPrior
         self.transmatPrior = transmatPrior
         
@@ -100,55 +118,66 @@ class GestureModel:
     
     def getTrainData(self, sameIDGestureList):
         ''' get training data from gesture list with the same id '''
-        gestureTypeList = []
+#         gestureTypeList = []
         
         for gesture in sameIDGestureList:
-            gestureTypeList.append(gesture.gestureType)
+            data = gesture.timeDomainFeatures
+            if data.size == 0:
+                print gesture.gestureID, gesture.fileName
+            self.trainData.append(data)
+#             gestureTypeList.append(gesture.gestureType)
             
-        gestureTypeArr = np.array(gestureTypeList)
-        numLeftHand = gestureTypeArr[np.where(gestureTypeArr == GestureType.left_hand)].size
-        numRightHand = gestureTypeArr[np.where(gestureTypeArr == GestureType.right_hand)].size
-        numBothHands = gestureTypeArr[np.where(gestureTypeArr == GestureType.both_hands)].size
-        
-        predTypeDict = {numLeftHand : GestureType.left_hand, numRightHand : GestureType.right_hand, numBothHands : GestureType.both_hands}
-        maxNum = max(numLeftHand, numRightHand, numBothHands)
-        gestureType = predTypeDict.get(maxNum)
-        
-        if gestureType == GestureType.both_hands:
-            # both hands gesture type
-            self.gestureType = gestureType
-        else:
-            # single hand gesture type
-            self.gestureType = GestureType.single_hand
-        
-        if self.gestureType == GestureType.single_hand:
-            
-            for geture in sameIDGestureList:
-                if gesture.gestureType == GestureType.left_hand:
-                    data = geture.leftGestureFeatures
-                elif gesture.gestureType == GestureType.right_hand:
-                    data = geture.rightGestureFeatures
-                    
-                self.trainData.append(data)
-                
-        elif self.gestureType == GestureType.both_hands:
-            # both hands 
-            for geture in sameIDGestureList:
-                data = np.hstack((geture.leftGestureFeatures, geture.rightGestureFeatures))
-                self.trainData.append(data)
+#         gestureTypeArr = np.array(gestureTypeList)
+#         numLeftHand = gestureTypeArr[np.where(gestureTypeArr == GestureType.left_hand)].size
+#         numRightHand = gestureTypeArr[np.where(gestureTypeArr == GestureType.right_hand)].size
+#         numBothHands = gestureTypeArr[np.where(gestureTypeArr == GestureType.both_hands)].size
+#         
+#         predTypeDict = {numLeftHand : GestureType.left_hand, numRightHand : GestureType.right_hand, numBothHands : GestureType.both_hands}
+#         maxNum = max(numLeftHand, numRightHand, numBothHands)
+#         gestureType = predTypeDict.get(maxNum)
+#         
+#         if gestureType == GestureType.both_hands:
+#             # both hands gesture type
+#             self.gestureType = gestureType
+#         else:
+#             # single hand gesture type
+#             self.gestureType = GestureType.single_hand
+#         
+#         if self.gestureType == GestureType.single_hand:
+#             
+#             for geture in sameIDGestureList:
+#                 if gesture.gestureType == GestureType.left_hand:
+#                     data = geture.leftGestureFeatures
+#                 elif gesture.gestureType == GestureType.right_hand:
+#                     data = geture.rightGestureFeatures
+#                     
+#                 self.trainData.append(data)
+#                 
+#         elif self.gestureType == GestureType.both_hands:
+#             # both hands 
+#             for geture in sameIDGestureList:
+#                 data = np.hstack((geture.leftGestureFeatures, geture.rightGestureFeatures))
+#                 self.trainData.append(data)
         
         
     def trainHMMModel(self):
         ''' train hmm model from training data '''
         
         # GaussianHMM
-        #model = hmm.GaussianHMM(self.numStates, "diag") # initialize hmm model
+#         model = hmm.GaussianHMM(self.nStates, "full") # initialize hmm model
+#         model = hmm.GaussianHMM(n_components = self.nStates, transmat_prior = self.transmatPrior, \
+#                                 startprob_prior = self.startprobPrior, covariance_type = self.covarianceType, \
+#                                 n_iter = self.n_iter) # initialize hmm model
         
         # Gaussian Mixture HMM
-        model = hmm.GMMHMM(n_components = self.nStates, n_mix = self.nMix, \
-                           transmat_prior = self.transmatPrior, startprob_prior = self.startprobPrior, \
-                           covariance_type = self.covarianceType, n_iter = self.n_iter)
-        model.fit(self.trainData)   # get optimal parameters
-        self.hmmModel = model
-                
+#         model = hmm.GMMHMM(n_components = self.nStates, n_mix = self.nMix, \
+#                            transmat_prior = self.transmatPrior, startprob_prior = self.startprobPrior, \
+#                            covariance_type = self.covarianceType, n_iter = self.n_iter)
         
+        model = hmm.GMMHMM(n_components = self.nStates, n_mix = self.nMix, \
+                   covariance_type = self.covarianceType, n_iter = self.n_iter)
+        
+        
+        obs = self.trainData
+        model.fit(obs)   # get optimal parameters
+        self.hmmModel = model
